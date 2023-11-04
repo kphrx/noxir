@@ -10,6 +10,7 @@ defmodule Noxir.Application do
     children = [
       # Starts a worker by calling: Noxir.Worker.start_link(arg)
       # {Noxir.Worker, arg}
+      {Bandit, scheme: :http, plug: Noxir.Router, port: 4000}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
