@@ -39,12 +39,13 @@ defmodule Noxir.Relay do
 
   defp handle_nostr_event(event) do
     case Memento.transaction(fn ->
-      %Noxir.Event{}
-      |> struct(event)
-      |> Memento.Query.write()
-    end) do
+           %Noxir.Event{}
+           |> struct(event)
+           |> Memento.Query.write()
+         end) do
       {:ok, data} ->
         {true, ""}
+
       {:error, reason} ->
         Logger.debug(reason)
         {false, "Something went wrong"}
@@ -57,10 +58,11 @@ defmodule Noxir.Relay do
 
   defp handle_nostr_req(sub_id, _filters) do
     case Memento.transaction(fn ->
-      Memento.Query.all(Noxir.Event)
-    end) do
+           Memento.Query.all(Noxir.Event)
+         end) do
       {:ok, data} ->
         {sub_id, data}
+
       {:error, reason} ->
         Logger.debug(reason)
         {sub_id, []}

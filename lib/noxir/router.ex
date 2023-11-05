@@ -1,22 +1,22 @@
 defmodule Noxir.Router do
   use Plug.Router
 
-  if Mix.env == :dev do
+  if Mix.env() == :dev do
     use Plug.Debugger, otp_app: :noxir
   end
 
   use Plug.ErrorHandler
 
-  plug Plug.RewriteOn, [:x_forwarded_host, :x_forwarded_port, :x_forwarded_proto]
-  plug Plug.Logger
+  plug(Plug.RewriteOn, [:x_forwarded_host, :x_forwarded_port, :x_forwarded_proto])
+  plug(Plug.Logger)
 
-  plug Plug.Head
-  plug :connect
+  plug(Plug.Head)
+  plug(:connect)
 
-  plug :websocket
+  plug(:websocket)
 
-  plug :match
-  plug :dispatch
+  plug(:match)
+  plug(:dispatch)
 
   get "/" do
     send_resp(conn, 200, """
