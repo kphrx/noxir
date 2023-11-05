@@ -1,6 +1,13 @@
 defmodule Noxir.Router do
   use Plug.Router
 
+  if Mix.env == :dev do
+    use Plug.Debugger, otp_app: :noxir
+  end
+
+  use Plug.ErrorHandler
+
+  plug Plug.RewriteOn, [:x_forwarded_host, :x_forwarded_port, :x_forwarded_proto]
   plug Plug.Logger
 
   plug Plug.Head
@@ -32,5 +39,10 @@ defmodule Noxir.Router do
       _ ->
         conn
     end
+  end
+
+  @impl Plug.ErrorHandler
+  def handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
+    send_resp(conn, conn.status, "Something went wrong")
   end
 end
