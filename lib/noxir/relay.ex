@@ -1,6 +1,8 @@
 defmodule Noxir.Relay do
   @behaviour WebSock
 
+  require Logger
+
   def init(options) do
     Process.send_after(self(), :ping, 30_000)
 
@@ -8,8 +10,8 @@ defmodule Noxir.Relay do
   end
 
   def handle_in({data, opcode: opcode}, state) do
-    case Jason.decode(data) do
-      {:ok, ["EVENT", %{"id" => id} = event]} ->
+    case Jason.decode(data, keys: :atoms) do
+      {:ok, ["EVENT", %{id: id} = event]} ->
         handle_nostr_event(event)
         |> resp_nostr_ok(id, opcode, state)
 
@@ -19,10 +21,10 @@ defmodule Noxir.Relay do
 
       {:ok, ["CLOSE", subscription_id]} ->
         handle_nostr_close(subscription_id)
-        resp_nostr_notice("closed `#{subscription_id}`", opcode, state)
+        resp_nostr_notice("Closed sub_id: `#{subscription_id}`", opcode, state)
 
       _ ->
-        resp_nostr_notice("incorrect event payload", opcode, state)
+        resp_nostr_notice("Invalid message", opcode, state)
     end
   end
 
@@ -35,8 +37,18 @@ defmodule Noxir.Relay do
     {:push, {:text, msg}, state}
   end
 
-  defp handle_nostr_event(_event) do
-    {true, ""}
+  defp handle_nostr_event(event) do
+    case Memento.transaction(fn ->
+      %Noxir.Event{}
+      |> struct(event)
+      |> Memento.Query.write()
+    end) do
+      {:ok, data} ->
+        {true, ""}
+      {:error, reason} ->
+        Logger.debug(reason)
+        {false, "Something went wrong"}
+    end
   end
 
   defp resp_nostr_ok({accepted, msg}, id, opcode, state) do
@@ -44,13 +56,21 @@ defmodule Noxir.Relay do
   end
 
   defp handle_nostr_req(sub_id, _filters) do
-    {sub_id, []}
+    case Memento.transaction(fn ->
+      Memento.Query.all(Noxir.Event)
+    end) do
+      {:ok, data} ->
+        {sub_id, data}
+      {:error, reason} ->
+        Logger.debug(reason)
+        {sub_id, []}
+    end
   end
 
   defp resp_nostr_event_and_eose({sub_id, events}, opcode, state) do
     evt_msgs =
       events
-      |> Enum.map(fn ev -> ["EVENT", sub_id, ev] end)
+      |> Enum.map(fn ev -> ["EVENT", sub_id, Map.from_struct(ev) |> Map.delete(:__meta__)] end)
       |> Enum.reverse()
 
     msgs =
