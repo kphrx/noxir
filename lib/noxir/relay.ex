@@ -1,22 +1,30 @@
 defmodule Noxir.Relay do
+  @moduledoc """
+  Nostr Relay message handler.
+  """
+
   @behaviour WebSock
 
   require Logger
 
+  @impl WebSock
   def init(options) do
     Process.send_after(self(), :ping, 30_000)
 
     {:ok, options}
   end
 
+  @impl WebSock
   def handle_in({data, opcode: opcode}, state) do
-    case Jason.decode(data, keys: :atoms) do
+    case Jason.decode(data, keys: :atoms!) do
       {:ok, ["EVENT", %{id: id} = event]} ->
-        handle_nostr_event(event)
+        event
+        |> handle_nostr_event()
         |> resp_nostr_ok(id, opcode, state)
 
       {:ok, ["REQ", subscription_id | filters]} ->
-        handle_nostr_req(subscription_id, filters)
+        subscription_id
+        |> handle_nostr_req(filters)
         |> resp_nostr_event_and_eose(opcode, state)
 
       {:ok, ["CLOSE", subscription_id]} ->
@@ -28,8 +36,10 @@ defmodule Noxir.Relay do
     end
   end
 
+  @impl WebSock
   def handle_info(:ping, state) do
     Process.send_after(self(), :ping, 50_000)
+
     {:push, {:ping, ""}, state}
   end
 
@@ -43,7 +53,7 @@ defmodule Noxir.Relay do
            |> struct(event)
            |> Memento.Query.write()
          end) do
-      {:ok, data} ->
+      {:ok, _} ->
         {true, ""}
 
       {:error, reason} ->
@@ -56,7 +66,7 @@ defmodule Noxir.Relay do
     {:push, {opcode, Jason.encode!(["OK", id, accepted, msg])}, state}
   end
 
-  defp handle_nostr_req(sub_id, _filters) do
+  defp handle_nostr_req(sub_id, _) do
     case Memento.transaction(fn ->
            Memento.Query.all(Noxir.Event)
          end) do
@@ -72,7 +82,14 @@ defmodule Noxir.Relay do
   defp resp_nostr_event_and_eose({sub_id, events}, opcode, state) do
     evt_msgs =
       events
-      |> Enum.map(fn ev -> ["EVENT", sub_id, Map.from_struct(ev) |> Map.delete(:__meta__)] end)
+      |> Enum.map(fn event ->
+        ev =
+          event
+          |> Map.from_struct()
+          |> Map.delete(:__meta__)
+
+        ["EVENT", sub_id, ev]
+      end)
       |> Enum.reverse()
 
     msgs =
@@ -83,7 +100,7 @@ defmodule Noxir.Relay do
     {:push, msgs, state}
   end
 
-  defp handle_nostr_close(_sub_id), do: nil
+  defp handle_nostr_close(_), do: nil
 
   defp resp_nostr_notice(msg, opcode, state) do
     {:push, {opcode, Jason.encode!(["NOTICE", msg])}, state}

@@ -5,8 +5,8 @@ defmodule Noxir.Application do
 
   use Application
 
-  @impl true
-  def start(_type, _args) do
+  @impl Application
+  def start(_, _) do
     Memento.Table.create!(Noxir.Event)
     Memento.Table.wait(Noxir.Event, :infinity)
 

@@ -25,7 +25,8 @@ defmodule Noxir.MixProject do
       {:bandit, "~> 1.0"},
       {:jason, "~> 1.4"},
       {:memento, "~> 0.3"},
-      {:websock_adapter, "~> 0.5"}
+      {:websock_adapter, "~> 0.5"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 end
