@@ -5,19 +5,29 @@ defmodule Noxir.Relay do
 
   @behaviour WebSock
 
+  alias Noxir.Store
+  alias Noxir.Store.Connection
+  alias Noxir.Store.Event
+
   require Logger
 
   @impl WebSock
   def init(options) do
-    Process.send_after(self(), :ping, 30_000)
+    pid = self()
+
+    Memento.transaction!(fn ->
+      Connection.start(pid)
+    end)
+
+    Process.send_after(pid, :ping, 30_000)
 
     {:ok, options}
   end
 
   @impl WebSock
   def handle_in({data, opcode: opcode}, state) do
-    case Jason.decode(data, keys: :atoms!) do
-      {:ok, ["EVENT", %{id: id} = event]} ->
+    case Jason.decode(data) do
+      {:ok, ["EVENT", %{"id" => id} = event]} ->
         event
         |> handle_nostr_event()
         |> resp_nostr_ok(id, opcode, state)
@@ -47,11 +57,18 @@ defmodule Noxir.Relay do
     {:push, {:text, msg}, state}
   end
 
+  @impl WebSock
+  def terminate(_, state) do
+    Memento.transaction!(fn ->
+      Connection.disconnect(self())
+    end)
+
+    {:ok, state}
+  end
+
   defp handle_nostr_event(event) do
     case Memento.transaction(fn ->
-           %Noxir.Event{}
-           |> struct(event)
-           |> Memento.Query.write()
+           Event.create(event)
          end) do
       {:ok, _} ->
         {true, ""}
@@ -66,9 +83,13 @@ defmodule Noxir.Relay do
     {:push, {opcode, Jason.encode!(["OK", id, accepted, msg])}, state}
   end
 
-  defp handle_nostr_req(sub_id, _) do
+  defp handle_nostr_req(sub_id, filters) do
+    Memento.transaction!(fn ->
+      Connection.subscribe(self(), sub_id, filters)
+    end)
+
     case Memento.transaction(fn ->
-           Memento.Query.all(Noxir.Event)
+           Event.req(filters)
          end) do
       {:ok, data} ->
         {sub_id, data}
@@ -83,12 +104,7 @@ defmodule Noxir.Relay do
     evt_msgs =
       events
       |> Enum.map(fn event ->
-        ev =
-          event
-          |> Map.from_struct()
-          |> Map.delete(:__meta__)
-
-        ["EVENT", sub_id, ev]
+        ["EVENT", sub_id, Store.to_map(event)]
       end)
       |> Enum.reverse()
 
@@ -100,7 +116,11 @@ defmodule Noxir.Relay do
     {:push, msgs, state}
   end
 
-  defp handle_nostr_close(_), do: nil
+  defp handle_nostr_close(sub_id) do
+    Memento.transaction!(fn ->
+      Connection.close(self(), sub_id)
+    end)
+  end
 
   defp resp_nostr_notice(msg, opcode, state) do
     {:push, {opcode, Jason.encode!(["NOTICE", msg])}, state}
