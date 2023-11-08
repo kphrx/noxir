@@ -7,13 +7,8 @@ defmodule Noxir.Application do
 
   @impl Application
   def start(_, _) do
-    Memento.Table.create!(Noxir.Store.Event)
-    Memento.Table.create!(Noxir.Store.Connection)
-    Memento.Table.wait([Noxir.Store.Event, Noxir.Store.Connection], :infinity)
-
     children = [
-      # Starts a worker by calling: Noxir.Worker.start_link(arg)
-      # {Noxir.Worker, arg}
+      {Noxir.Store, []},
       {Bandit, scheme: :http, plug: Noxir.Router, port: 4000}
     ]
 

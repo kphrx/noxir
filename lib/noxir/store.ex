@@ -3,6 +3,46 @@ defmodule Noxir.Store do
   Utility for `Memento.Table`.
   """
 
+  use GenServer
+
+  alias Memento.Table
+  alias Noxir.Store.Connection
+  alias Noxir.Store.Event
+
+  @tables [
+    Connection,
+    Event
+  ]
+
+  @spec start_link([GenServer.option()]) :: GenServer.on_start()
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, %{})
+  end
+
+  @impl GenServer
+  def init(options) do
+    :net_kernel.monitor_nodes(true)
+
+    for table <- @tables do
+      Table.create!(table)
+    end
+
+    :ok = Table.wait(@tables, :infinity)
+
+    {:ok, options}
+  end
+
+  @impl GenServer
+  def handle_info({:nodeup, _}, state) do
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_info({:nodedown, _}, state) do
+    Memento.add_nodes(Node.list())
+    {:noreply, state}
+  end
+
   @spec change_to_existing_atom_key(map()) :: map()
   def change_to_existing_atom_key(map) do
     for {key, val} <- map, into: %{} do
