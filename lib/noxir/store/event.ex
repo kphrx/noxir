@@ -7,6 +7,16 @@ defmodule Noxir.Store.Event do
 
   alias Memento.Query
 
+  @type t :: %__MODULE__{
+          id: binary(),
+          pubkey: binary(),
+          created_at: integer(),
+          kind: integer(),
+          tags: [[binary()]],
+          content: binary(),
+          sig: binary()
+        }
+
   @spec create(__MODULE__.t()) :: Memento.Table.record() | no_return()
   def create(%__MODULE__{} = event) do
     Query.write(event)
@@ -15,7 +25,7 @@ defmodule Noxir.Store.Event do
   @spec create(map()) :: Memento.Table.record() | no_return()
   def create(event_map) do
     __MODULE__
-    |> struct(Noxir.Store.change_to_existing_atom_key(event))
+    |> struct(Noxir.Store.change_to_existing_atom_key(event_map))
     |> __MODULE__.create()
   end
 

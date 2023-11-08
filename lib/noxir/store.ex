@@ -17,9 +17,9 @@ defmodule Noxir.Store do
     end
   end
 
-  @spec to_map(__MODULE__.t()) :: map()
-  def to_map(%__MODULE__{} = event) do
-    event
+  @spec to_map(struct()) :: map()
+  def to_map(%{__meta__: Memento.Table} = map) do
+    map
     |> Map.from_struct()
     |> Map.delete(:__meta__)
   end

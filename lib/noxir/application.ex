@@ -7,9 +7,9 @@ defmodule Noxir.Application do
 
   @impl Application
   def start(_, _) do
-    Memento.Table.create!(Noxir.Event)
-    Memento.Table.create!(Noxir.Connection)
-    Memento.Table.wait([Noxir.Event, Noxir.Connection], :infinity)
+    Memento.Table.create!(Noxir.Store.Event)
+    Memento.Table.create!(Noxir.Store.Connection)
+    Memento.Table.wait([Noxir.Store.Event, Noxir.Store.Connection], :infinity)
 
     children = [
       # Starts a worker by calling: Noxir.Worker.start_link(arg)
