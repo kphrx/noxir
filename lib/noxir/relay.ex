@@ -16,7 +16,7 @@ defmodule Noxir.Relay do
     pid = self()
 
     Memento.transaction!(fn ->
-      Connection.start(pid)
+      Connection.open(pid)
     end)
 
     Process.send_after(pid, :ping, 30_000)
@@ -104,7 +104,9 @@ defmodule Noxir.Relay do
     evt_msgs =
       events
       |> Enum.map(fn event ->
-        ["EVENT", sub_id, Store.to_map(event)]
+        event
+        |> Store.to_map()
+        |> resp_nostr_event_msg(sub_id)
       end)
       |> Enum.reverse()
 
@@ -115,6 +117,8 @@ defmodule Noxir.Relay do
 
     {:push, msgs, state}
   end
+
+  defp resp_nostr_event_msg(event, sub_id), do: Jason.encode!(["EVENT", sub_id, event])
 
   defp handle_nostr_close(sub_id) do
     Memento.transaction!(fn ->

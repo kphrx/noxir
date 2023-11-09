@@ -6,8 +6,8 @@ defmodule Noxir.Store.Connection do
 
   alias Memento.Query
 
-  @spec start(pid()) :: Memento.Table.record() | no_return()
-  def start(pid) do
+  @spec open(pid()) :: Memento.Table.record() | no_return()
+  def open(pid) do
     Query.write(%__MODULE__{
       pid: pid,
       subscriptions: []

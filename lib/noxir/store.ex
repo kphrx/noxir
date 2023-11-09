@@ -50,7 +50,7 @@ defmodule Noxir.Store do
         try do
           String.to_existing_atom(key)
         rescue
-          ArgumentError -> key
+          _ -> key
         end
 
       {key, val}
@@ -58,7 +58,7 @@ defmodule Noxir.Store do
   end
 
   @spec to_map(struct()) :: map()
-  def to_map(%{__meta__: Memento.Table} = map) do
+  def to_map(%{__meta__: Table} = map) do
     map
     |> Map.from_struct()
     |> Map.delete(:__meta__)
