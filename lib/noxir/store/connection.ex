@@ -44,4 +44,16 @@ defmodule Noxir.Store.Connection do
     Query.delete(__MODULE__, pid)
     Query.write(conn)
   end
+
+  @spec all :: [Memento.Table.record()]
+  def all do
+    Query.all(__MODULE__)
+  end
+
+  @spec get_subscriptions(pid()) :: [{binary(), [map()]}]
+  def get_subscriptions(pid) do
+    __MODULE__
+    |> Query.read(pid)
+    |> Map.get(:subscriptions)
+  end
 end

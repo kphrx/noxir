@@ -16,7 +16,7 @@ defmodule Noxir.Store do
 
   @spec start_link([GenServer.option()]) :: GenServer.on_start()
   def start_link(_) do
-    GenServer.start_link(__MODULE__, %{})
+    GenServer.start_link(__MODULE__, %{}, name: NoxirStore)
   end
 
   @impl GenServer
@@ -37,10 +37,48 @@ defmodule Noxir.Store do
     {:noreply, state}
   end
 
-  @impl GenServer
   def handle_info({:nodedown, _}, state) do
     Memento.add_nodes(Node.list())
     {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_call({:event_create, event}, {from, _}, state) do
+    result =
+      case Memento.transaction(fn ->
+             Event.create(event)
+           end) do
+        {:ok, ev} ->
+          GenServer.cast(NoxirStore, {:event_create, ev, from})
+          {:ok, ev}
+
+        e ->
+          e
+      end
+
+    {:reply, result, state}
+  end
+
+  @impl GenServer
+  def handle_cast({:event_create, event, from}, state) do
+    fn ->
+      Connection.all()
+    end
+    |> Memento.transaction!()
+    |> Enum.map(fn %Connection{pid: pid} -> pid end)
+    |> Enum.filter(fn pid ->
+      pid != from
+    end)
+    |> Enum.each(fn pid ->
+      Process.send(pid, {:event_create, event}, [])
+    end)
+
+    {:noreply, state}
+  end
+
+  @spec event_create(Event.t() | map()) :: {:ok, Table.record()} | {:error, any()}
+  def event_create(event) do
+    GenServer.call(NoxirStore, {:event_create, event}, :infinity)
   end
 
   @spec change_to_existing_atom_key(map()) :: map()

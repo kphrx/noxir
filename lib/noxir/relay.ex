@@ -53,8 +53,27 @@ defmodule Noxir.Relay do
     {:push, {:ping, ""}, state}
   end
 
-  def handle_info(msg, state) do
-    {:push, {:text, msg}, state}
+  def handle_info({:event_create, %Event{} = event}, state) do
+    event_map = Store.to_map(event)
+
+    msgs =
+      fn ->
+        Connection.get_subscriptions(self())
+      end
+      |> Memento.transaction!()
+      |> Enum.filter(fn {_, filters} ->
+        Event.match(event, filters)
+      end)
+      |> Enum.map(fn {sub_id, _} ->
+        msg =
+          event_map
+          |> resp_nostr_event_msg(sub_id)
+          |> Jason.encode!()
+
+        {:text, msg}
+      end)
+
+    {:push, msgs, state}
   end
 
   @impl WebSock
@@ -67,9 +86,7 @@ defmodule Noxir.Relay do
   end
 
   defp handle_nostr_event(event) do
-    case Memento.transaction(fn ->
-           Event.create(event)
-         end) do
+    case Store.event_create(event) do
       {:ok, _} ->
         {true, ""}
 
