@@ -17,6 +17,7 @@ RUN apt-get update -y && apt-get install -y openssl \
     && apt-get clean \
     && rm -f /var/lib/apt/lists/*_*
 
+ARG MIX_ENV=prod
 ENV MIX_ENV=${MIX_ENV}
 
 WORKDIR /app
