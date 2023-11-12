@@ -88,16 +88,16 @@ defmodule Noxir.Relay do
   defp handle_nostr_event(event) do
     case Store.event_create(event) do
       {:ok, _} ->
-        {true, ""}
+        {:ok, ""}
 
       {:error, reason} ->
         Logger.debug(reason)
-        {false, "Something went wrong"}
+        {:error, "Something went wrong"}
     end
   end
 
-  defp resp_nostr_ok({accepted, msg}, id, opcode, state) do
-    {:push, {opcode, Jason.encode!(["OK", id, accepted, msg])}, state}
+  defp resp_nostr_ok(res, id, opcode, state) do
+    {:push, {opcode, resp_nostr_ok_msg(res, id)}, state}
   end
 
   defp handle_nostr_req(sub_id, filters) do
@@ -128,14 +128,12 @@ defmodule Noxir.Relay do
       |> Enum.reverse()
 
     msgs =
-      [["EOSE", sub_id] | evt_msgs]
-      |> Enum.map(fn msg -> {opcode, Jason.encode!(msg)} end)
+      [resp_nostr_eose_msg(sub_id) | evt_msgs]
+      |> Enum.map(fn msg -> {opcode, msg} end)
       |> Enum.reverse()
 
     {:push, msgs, state}
   end
-
-  defp resp_nostr_event_msg(event, sub_id), do: Jason.encode!(["EVENT", sub_id, event])
 
   defp handle_nostr_close(sub_id) do
     Memento.transaction!(fn ->
@@ -144,6 +142,15 @@ defmodule Noxir.Relay do
   end
 
   defp resp_nostr_notice(msg, opcode, state) do
-    {:push, {opcode, Jason.encode!(["NOTICE", msg])}, state}
+    {:push, {opcode, resp_nostr_event_msg(msg)}, state}
   end
+
+  defp resp_nostr_event_msg(event, sub_id), do: Jason.encode!(["EVENT", sub_id, event])
+
+  defp resp_nostr_ok_msg({:ok, msg}, id), do: Jason.encode!(["OK", id, true, msg])
+  defp resp_nostr_ok_msg({:error, msg}, id), do: Jason.encode!(["OK", id, false, msg])
+
+  defp resp_nostr_eose_msg(sub_id), do: Jason.encode!(["EOSE", sub_id])
+
+  defp resp_nostr_event_msg(msg), do: Jason.encode!(["NOTICE", msg])
 end
