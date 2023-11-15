@@ -42,16 +42,12 @@ defmodule Noxir.Store.Event do
         filters
       ) do
     Enum.any?(filters, fn filter ->
-      with true <- match_ids?(filter, id),
-           true <- match_authors?(filter, pkey),
-           true <- match_kinds?(filter, kind),
-           true <- match_range?(filter, created_at),
-           true <- match_tags?(filter, tags, "e"),
-           true <- match_tags?(filter, tags, "p") do
-        true
-      else
-        _ -> false
-      end
+      match_ids?(filter, id) and
+        match_authors?(filter, pkey) and
+        match_kinds?(filter, kind) and
+        match_range?(filter, created_at) and
+        Enum.all?(?a..?z, &match_tags?(filter, tags, to_string([&1]))) and
+        Enum.all?(?A..?Z, &match_tags?(filter, tags, to_string([&1])))
     end)
   end
 
@@ -86,7 +82,7 @@ defmodule Noxir.Store.Event do
   defp match_kinds?(nil, _), do: true
 
   defp match_range?(%{} = filter, created_at),
-    do: match_since?(filter, created_at) && match_until?(filter, created_at)
+    do: match_since?(filter, created_at) and match_until?(filter, created_at)
 
   defp match_since?(%{} = filter, created_at),
     do:
