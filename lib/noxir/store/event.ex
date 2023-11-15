@@ -108,10 +108,12 @@ defmodule Noxir.Store.Event do
 
   defp match_tags?(%{} = filter, tags, letter) do
     tags =
-      Enum.filter(tags, fn
+      tags
+      |> Enum.filter(fn
         [^letter | _] -> true
         _ -> false
       end)
+      |> Enum.map(fn [_, tag | _] -> tag end)
 
     filter
     |> Map.get("##{letter}")
