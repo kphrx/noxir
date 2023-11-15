@@ -62,7 +62,7 @@ defmodule Noxir.Relay do
       end
       |> Memento.transaction!()
       |> Enum.filter(fn {_, filters} ->
-        Event.match(event, filters)
+        Event.filter_match?(event, filters)
       end)
       |> Enum.map(fn {sub_id, _} ->
         msg =
