@@ -6,6 +6,46 @@ defmodule Noxir.Store.Filter do
   alias Noxir.Store
   alias Store.Event
 
+  @spec to_mnesia_query(__MODULE__.t()) :: {[tuple()], Memento.Query.options()}
+  def to_mnesia_query(%__MODULE__{
+        ids: ids,
+        authors: authors,
+        kinds: kinds,
+        since: since,
+        until: until,
+        limit: limit
+      }) do
+    query =
+      []
+      |> id_query(ids)
+      |> pubkey_query(authors)
+      |> kind_query(kinds)
+      |> since_query(since)
+      |> until_query(until)
+
+    {query, limit: limit}
+  end
+
+  defp id_query(res, [_ | _] = ids),
+    do: [List.to_tuple([:or | Enum.map(ids, &{:==, :id, &1})]) | res]
+
+  defp id_query(res, _), do: res
+
+  defp pubkey_query(res, [_ | _] = authors),
+    do: [List.to_tuple([:or | Enum.map(authors, &{:==, :pubkey, &1})]) | res]
+
+  defp pubkey_query(res, _), do: res
+
+  defp kind_query(res, [_ | _] = kinds),
+    do: [List.to_tuple([:or | Enum.map(kinds, &{:==, :kind, &1})]) | res]
+
+  defp kind_query(res, _), do: res
+
+  defp since_query(res, nil), do: res
+  defp since_query(res, since), do: [{:>=, :created_at, since} | res]
+
+  defp until_query(res, nil), do: res
+  defp until_query(res, until), do: [{:<=, :created_at, until} | res]
 
   @spec match?([__MODULE__.t() | map()] | __MODULE__.t() | map(), Event.t()) :: boolean()
   def match?([], _), do: true
