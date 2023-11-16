@@ -11,7 +11,7 @@ defmodule Noxir.Store.FilterMatch do
     Enum.map([:pre, :match_ids?, :match_authors?, :match_kinds? | single_letters], fn
       :pre ->
         quote do
-          @tag_filters Enum.map(unquote(single_letters), &String.to_atom("##{&1}"))
+          @tag_filters unquote(Enum.map(single_letters, &:"##{&1}"))
           @parameters [:ids, :authors, :kinds, :since, :until, :limit | @tag_filters]
 
           defstruct @parameters
@@ -34,19 +34,17 @@ defmodule Noxir.Store.FilterMatch do
           defp unquote(value)(_, _), do: true
         end
 
-      value ->
-        tag = String.to_existing_atom("##{value}")
+      tag ->
+        atom_tag = :"##{tag}"
 
         quote do
-          defp match_tags?(unquote(tag), %Filter{unquote(tag) => filter}, _)
+          defp match_tags?(unquote(atom_tag), %Filter{unquote(atom_tag) => filter}, _)
                when is_nil(filter),
                do: true
 
-          defp match_tags?(unquote(tag), %Filter{unquote(tag) => filter}, tags) do
-            "#" <> tag_name = Atom.to_string(unquote(tag))
-
+          defp match_tags?(unquote(atom_tag), %Filter{unquote(atom_tag) => filter}, tags) do
             Enum.any?(tags, fn
-              [^tag_name, value | _] -> Enum.any?(filter, &(&1 == value))
+              [unquote(tag), value | _] -> Enum.any?(filter, &(&1 == value))
               _ -> false
             end)
           end

@@ -10,10 +10,10 @@ defmodule Noxir.Store.Filter do
   @type query_opts :: Memento.Query.options()
   @type query :: {memento_query(), query_opts()}
 
-  @spec to_mnesia_query([__MODULE__.t() | map()] | __MODULE__.t() | map()) :: [query()] | query()
-  def to_mnesia_query(filters) when is_list(filters),
-    do: Enum.map(filters, &__MODULE__.to_mnesia_query/1)
+  @spec from_map(map()) :: __MODULE__.t()
+  def from_map(filter), do: struct(__MODULE__, Store.change_to_existing_atom_key(filter))
 
+  @spec to_mnesia_query(__MODULE__.t()) :: [query()] | query()
   def to_mnesia_query(%__MODULE__{
         ids: ids,
         authors: authors,
@@ -37,12 +37,6 @@ defmodule Noxir.Store.Filter do
        else
          nil
        end}
-  end
-
-  def to_mnesia_query(filter) do
-    __MODULE__
-    |> struct(Store.change_to_existing_atom_key(filter))
-    |> __MODULE__.to_mnesia_query()
   end
 
   defp id_query(res, [id]), do: [{:==, :id, id} | res]
@@ -85,8 +79,8 @@ defmodule Noxir.Store.Filter do
   end
 
   def match?(filter, event) do
-    __MODULE__
-    |> struct(Store.change_to_existing_atom_key(filter))
+    filter
+    |> from_map()
     |> __MODULE__.match?(event)
   end
 
@@ -106,7 +100,8 @@ defmodule Noxir.Store.Filter do
   defp match_until?(nil, _), do: true
   defp match_until?(until, created_at), do: created_at <= until
 
-  defp match_tags?(%__MODULE__{} = filter, %Event{tags: tags}) do
+  @spec match_tags?(__MODULE__.t(), Event.t()) :: boolean()
+  def match_tags?(%__MODULE__{} = filter, %Event{tags: tags}) do
     Enum.all?(@tag_filters, &match_tags?(&1, filter, tags))
   end
 end

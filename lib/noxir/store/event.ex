@@ -43,7 +43,11 @@ defmodule Noxir.Store.Event do
   end
 
   def req(filter) do
+    filter = Filter.from_map(filter)
     {query, opts} = Filter.to_mnesia_query(filter)
-    Query.select(__MODULE__, query, opts)
+
+    __MODULE__
+    |> Query.select(query, opts)
+    |> Enum.filter(&Filter.match_tags?(filter, &1))
   end
 end
