@@ -5,6 +5,7 @@ defmodule Noxir.Store.Connection do
     attributes: [:pid, :subscriptions]
 
   alias Memento.Query
+  alias Noxir.Store.Filter
 
   @spec open(pid()) :: Memento.Table.record() | no_return()
   def open(pid) do
@@ -19,14 +20,22 @@ defmodule Noxir.Store.Connection do
     Query.delete(__MODULE__, pid)
   end
 
-  @spec subscribe(pid(), binary(), [map()]) :: Memento.Table.record() | no_return()
-  def subscribe(pid, sub_id, filters) do
+  @spec subscribe(pid(), binary(), [Filter.t() | map()]) :: Memento.Table.record() | no_return()
+  def subscribe(pid, sub_id, [%Filter{} | _] = filters) do
     __MODULE__
     |> Query.read(pid)
     |> Map.replace_lazy(:subscriptions, fn subs ->
       List.keystore(subs, sub_id, 0, {sub_id, filters})
     end)
     |> Query.write()
+  end
+
+  def subscribe(pid, sub_id, filters) do
+    subscribe(
+      pid,
+      sub_id,
+      Enum.map(filters, &struct(Filter, Noxir.Store.change_to_existing_atom_key(&1)))
+    )
   end
 
   @spec close(pid(), binary()) :: Memento.Table.record() | no_return()

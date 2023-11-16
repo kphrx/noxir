@@ -6,6 +6,9 @@ defmodule Noxir.Store.Event do
     index: [:pubkey, :kind, :created_at]
 
   alias Memento.Query
+  alias Memento.Table
+  alias Noxir.Store
+  alias Store.Filter
 
   @type t :: %__MODULE__{
           id: binary(),
@@ -17,108 +20,34 @@ defmodule Noxir.Store.Event do
           sig: binary()
         }
 
-  @spec create(__MODULE__.t()) :: Memento.Table.record() | no_return()
+  @spec create(__MODULE__.t()) :: Table.record() | no_return()
   def create(%__MODULE__{} = event) do
     Query.write(event)
   end
 
-  @spec create(map()) :: Memento.Table.record() | no_return()
+  @spec create(map()) :: Table.record() | no_return()
   def create(event_map) do
     __MODULE__
-    |> struct(Noxir.Store.change_to_existing_atom_key(event_map))
+    |> struct(Store.change_to_existing_atom_key(event_map))
     |> __MODULE__.create()
   end
 
-  @spec req(map()) :: [Memento.Table.record()]
-  def req(filters) do
+  @spec req([map()] | map()) :: {:ok, [__MODULE__.t()]} | {:error, any()}
+  def req([]), do: {:error, "need one or more filters"}
+
+  def req(filters) when is_list(filters) do
+    filters
+    |> Enum.map(&req/1)
+    |> List.flatten()
+    |> Enum.uniq_by(fn %__MODULE__{id: id} -> id end)
+  end
+
+  def req(filter) do
+    filter = Filter.from_map(filter)
+    {query, opts} = Filter.to_mnesia_query(filter)
+
     __MODULE__
-    |> Query.all()
-    |> Enum.filter(&filter_match?(&1, filters))
+    |> Query.select(query, opts)
+    |> Enum.filter(&Filter.match_tags?(filter, &1))
   end
-
-  @spec filter_match?(__MODULE__.t(), filters :: map()) :: boolean()
-  def filter_match?(
-        %__MODULE__{id: id, pubkey: pkey, kind: kind, created_at: created_at, tags: tags},
-        filters
-      ) do
-    Enum.any?(filters, fn filter ->
-      match_ids?(filter, id) and
-        match_authors?(filter, pkey) and
-        match_kinds?(filter, kind) and
-        match_range?(filter, created_at) and
-        Enum.all?(?a..?z, &match_tags?(filter, tags, to_string([&1]))) and
-        Enum.all?(?A..?Z, &match_tags?(filter, tags, to_string([&1])))
-    end)
-  end
-
-  defp match_ids?(%{} = filter, id),
-    do:
-      filter
-      |> Map.get("ids")
-      |> match_ids?(id)
-
-  defp match_ids?([_ | _] = ids, id), do: Enum.any?(ids, &(&1 == id))
-  defp match_ids?([], _), do: true
-  defp match_ids?(nil, _), do: true
-
-  defp match_authors?(%{} = filter, pubkey),
-    do:
-      filter
-      |> Map.get("authors")
-      |> match_authors?(pubkey)
-
-  defp match_authors?([_ | _] = authors, pubkey), do: Enum.any?(authors, &(&1 == pubkey))
-  defp match_authors?([], _), do: true
-  defp match_authors?(nil, _), do: true
-
-  defp match_kinds?(%{} = filter, kind),
-    do:
-      filter
-      |> Map.get("kinds")
-      |> match_kinds?(kind)
-
-  defp match_kinds?([_ | _] = kinds, kind), do: Enum.any?(kinds, &(&1 == kind))
-  defp match_kinds?([], _), do: true
-  defp match_kinds?(nil, _), do: true
-
-  defp match_range?(%{} = filter, created_at),
-    do: match_since?(filter, created_at) and match_until?(filter, created_at)
-
-  defp match_since?(%{} = filter, created_at),
-    do:
-      filter
-      |> Map.get("since")
-      |> match_since?(created_at)
-
-  defp match_since?(nil, _), do: true
-  defp match_since?(since, created_at), do: since <= created_at
-
-  defp match_until?(%{} = filter, created_at),
-    do:
-      filter
-      |> Map.get("until")
-      |> match_until?(created_at)
-
-  defp match_until?(nil, _), do: true
-  defp match_until?(until, created_at), do: created_at <= until
-
-  defp match_tags?(%{} = filter, tags, letter) do
-    tags =
-      tags
-      |> Enum.filter(fn
-        [^letter | _] -> true
-        _ -> false
-      end)
-      |> Enum.map(fn [_, tag | _] -> tag end)
-
-    filter
-    |> Map.get("##{letter}")
-    |> match_tags?(tags)
-  end
-
-  defp match_tags?([_ | _] = tags_filter, tags),
-    do: Enum.any?(tags, fn tag -> Enum.any?(tags_filter, &(&1 == tag)) end)
-
-  defp match_tags?([], _), do: true
-  defp match_tags?(nil, _), do: true
 end
