@@ -54,7 +54,7 @@ defmodule Noxir.Relay do
     {:push, {:ping, ""}, state}
   end
 
-  def handle_info({:event_create, %Event{} = event}, state) do
+  def handle_info({:create_event, %Event{} = event}, state) do
     event_map = Store.to_map(event)
 
     msgs =
@@ -86,8 +86,53 @@ defmodule Noxir.Relay do
     {:ok, state}
   end
 
-  defp handle_nostr_event(event) do
-    case Store.event_create(event) do
+  defp handle_nostr_event(%{"kind" => kind} = event)
+       when kind == 1 or (1000 <= kind and kind < 10_000),
+       do: handle_nostr_event(event, :regular)
+
+  defp handle_nostr_event(%{"kind" => kind} = event)
+       when kind == 0 or kind == 3 or (10_000 <= kind and kind < 20_000),
+       do: handle_nostr_event(event, :replaceable)
+
+  defp handle_nostr_event(%{"kind" => kind} = event) when 20_000 <= kind and kind < 30_000,
+    do: handle_nostr_event(event, :ephemeral)
+
+  defp handle_nostr_event(%{"kind" => kind} = event) when 30_000 <= kind and kind < 40_000,
+    do: handle_nostr_event(event, :parameterized)
+
+  defp handle_nostr_event(event, type \\ :unknown) do
+    case type do
+      :regular -> store_event(event)
+      t when t in [:replaceable, :parameterized] -> replace_event(event, t)
+      :ephemeral -> {:ok, ""}
+      :unknown -> store_event(event)
+    end
+  end
+
+  defp store_event(event) do
+    case Store.create_event(event) do
+      {:ok, _} ->
+        {:ok, ""}
+
+      {:error, reason} ->
+        Logger.debug(reason)
+        {:error, "Something went wrong"}
+    end
+  end
+
+  defp replace_event(event, :replaceable) do
+    case Store.replace_event(event) do
+      {:ok, _} ->
+        {:ok, ""}
+
+      {:error, reason} ->
+        Logger.debug(reason)
+        {:error, "Something went wrong"}
+    end
+  end
+
+  defp replace_event(event, :parameterized) do
+    case Store.replace_event(event, :parameterized) do
       {:ok, _} ->
         {:ok, ""}
 
