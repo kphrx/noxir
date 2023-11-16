@@ -32,10 +32,18 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.create()
   end
 
-  @spec req(map()) :: [Table.record()]
-  def req(filters) do
-    __MODULE__
-    |> Query.all()
-    |> Enum.filter(&Filter.match?(filters, &1))
+  @spec req([map()] | map()) :: {:ok, [__MODULE__.t()]} | {:error, any()}
+  def req([]), do: {:error, "need one or more filters"}
+
+  def req(filters) when is_list(filters) do
+    filters
+    |> Enum.map(&req/1)
+    |> List.flatten()
+    |> Enum.uniq_by(fn %__MODULE__{id: id} -> id end)
+  end
+
+  def req(filter) do
+    {query, opts} = Filter.to_mnesia_query(filter)
+    Query.select(__MODULE__, query, opts)
   end
 end

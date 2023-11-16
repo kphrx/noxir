@@ -6,7 +6,14 @@ defmodule Noxir.Store.Filter do
   alias Noxir.Store
   alias Store.Event
 
-  @spec to_mnesia_query(__MODULE__.t()) :: {[tuple()], Memento.Query.options()}
+  @type memento_query :: [tuple()]
+  @type query_opts :: Memento.Query.options()
+  @type query :: {memento_query(), query_opts()}
+
+  @spec to_mnesia_query([__MODULE__.t() | map()] | __MODULE__.t() | map()) :: [query()] | query()
+  def to_mnesia_query(filters) when is_list(filters),
+    do: Enum.map(filters, &__MODULE__.to_mnesia_query/1)
+
   def to_mnesia_query(%__MODULE__{
         ids: ids,
         authors: authors,
@@ -23,18 +30,36 @@ defmodule Noxir.Store.Filter do
       |> since_query(since)
       |> until_query(until)
 
-    {query, limit: limit}
+    {query,
+     limit:
+       if limit > 0 do
+         limit
+       else
+         nil
+       end}
   end
+
+  def to_mnesia_query(filter) do
+    __MODULE__
+    |> struct(Store.change_to_existing_atom_key(filter))
+    |> __MODULE__.to_mnesia_query()
+  end
+
+  defp id_query(res, [id]), do: [{:==, :id, id} | res]
 
   defp id_query(res, [_ | _] = ids),
     do: [List.to_tuple([:or | Enum.map(ids, &{:==, :id, &1})]) | res]
 
   defp id_query(res, _), do: res
 
+  defp pubkey_query(res, [author]), do: [{:==, :pubkey, author} | res]
+
   defp pubkey_query(res, [_ | _] = authors),
     do: [List.to_tuple([:or | Enum.map(authors, &{:==, :pubkey, &1})]) | res]
 
   defp pubkey_query(res, _), do: res
+
+  defp kind_query(res, [kind]), do: [{:==, :kind, kind} | res]
 
   defp kind_query(res, [_ | _] = kinds),
     do: [List.to_tuple([:or | Enum.map(kinds, &{:==, :kind, &1})]) | res]
