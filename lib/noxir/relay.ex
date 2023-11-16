@@ -54,7 +54,7 @@ defmodule Noxir.Relay do
     {:push, {:ping, ""}, state}
   end
 
-  def handle_info({:event_create, %Event{} = event}, state) do
+  def handle_info({:create_event, %Event{} = event}, state) do
     event_map = Store.to_map(event)
 
     msgs =
@@ -87,7 +87,7 @@ defmodule Noxir.Relay do
   end
 
   defp handle_nostr_event(event) do
-    case Store.event_create(event) do
+    case Store.create_event(event) do
       {:ok, _} ->
         {:ok, ""}
 

@@ -43,13 +43,13 @@ defmodule Noxir.Store do
   end
 
   @impl GenServer
-  def handle_call({:event_create, event}, {from, _}, state) do
+  def handle_call({:create_event, event}, {from, _}, state) do
     result =
       case Memento.transaction(fn ->
              Event.create(event)
            end) do
         {:ok, ev} ->
-          GenServer.cast(NoxirStore, {:event_create, ev, from})
+          GenServer.cast(NoxirStore, {:create_event, ev, from})
           {:ok, ev}
 
         e ->
@@ -60,7 +60,7 @@ defmodule Noxir.Store do
   end
 
   @impl GenServer
-  def handle_cast({:event_create, event, from}, state) do
+  def handle_cast({:create_event, event, from}, state) do
     fn ->
       Connection.all()
     end
@@ -70,15 +70,15 @@ defmodule Noxir.Store do
       pid != from
     end)
     |> Enum.each(fn pid ->
-      Process.send(pid, {:event_create, event}, [])
+      Process.send(pid, {:create_event, event}, [])
     end)
 
     {:noreply, state}
   end
 
-  @spec event_create(Event.t() | map()) :: {:ok, Table.record()} | {:error, any()}
-  def event_create(event) do
-    GenServer.call(NoxirStore, {:event_create, event}, :infinity)
+  @spec create_event(Event.t() | map()) :: {:ok, Table.record()} | {:error, any()}
+  def create_event(event) do
+    GenServer.call(NoxirStore, {:create_event, event}, :infinity)
   end
 
   @spec change_to_existing_atom_key(map()) :: map()
