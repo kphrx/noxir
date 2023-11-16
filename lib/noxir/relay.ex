@@ -6,8 +6,9 @@ defmodule Noxir.Relay do
   @behaviour WebSock
 
   alias Noxir.Store
-  alias Noxir.Store.Connection
-  alias Noxir.Store.Event
+  alias Store.Connection
+  alias Store.Event
+  alias Store.Filter
 
   require Logger
 
@@ -62,7 +63,7 @@ defmodule Noxir.Relay do
       end
       |> Memento.transaction!()
       |> Enum.filter(fn {_, filters} ->
-        Event.filter_match?(event, filters)
+        Filter.match?(filters, event)
       end)
       |> Enum.map(fn {sub_id, _} ->
         msg =

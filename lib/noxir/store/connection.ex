@@ -5,28 +5,7 @@ defmodule Noxir.Store.Connection do
     attributes: [:pid, :subscriptions]
 
   alias Memento.Query
-
-  defmodule Filter do
-    single_lowercase_letters = Enum.map(?a..?z, &to_string([&1]))
-    single_uppercase_letters = Enum.map(?A..?Z, &to_string([&1]))
-    single_letters = single_lowercase_letters ++ single_uppercase_letters
-    @tag_filters Enum.map(single_letters, &String.to_atom("##{&1}"))
-
-    @parameters [:ids, :authors, :kinds, :since, :until, :limit | @tag_filters]
-
-    attrs =
-      @parameters
-      |> Enum.map(fn
-        :kinds -> ":kinds => [integer()]"
-        attr when attr in [:since, :until, :limit] -> "#{inspect(attr)} => integer()"
-        attr -> "#{inspect(attr)} => [binary()]"
-      end)
-      |> Enum.join(",")
-
-    @type t :: unquote(Code.string_to_quoted!("%__MODULE__{#{attrs}}"))
-
-    defstruct @parameters
-  end
+  alias Noxir.Store.Filter
 
   @spec open(pid()) :: Memento.Table.record() | no_return()
   def open(pid) do
