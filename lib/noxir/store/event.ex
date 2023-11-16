@@ -40,6 +40,44 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.create()
   end
 
+  @spec delete_old({pubkey(), kind()} | {pubkey(), kind(), [binary()]}) :: :ok
+  def delete_old({pkey, kind}) do
+    __MODULE__
+    |> Query.select([
+      {:==, :pubkey, pkey},
+      {:===, :kind, kind}
+    ])
+    |> delete_old_record()
+  end
+
+  def delete_old({pkey, kind, params}) do
+    filter = Filter.from_map(%{"#d" => params})
+
+    __MODULE__
+    |> Query.select([
+      {:==, :pubkey, pkey},
+      {:===, :kind, kind}
+    ])
+    |> Enum.filter(&Filter.match_tags?(filter, &1))
+    |> delete_old_record()
+  end
+
+  defp delete_old_record(record) do
+    [_ | old] =
+      Enum.sort(record, fn %__MODULE__{id: lid, created_at: lt},
+                           %__MODULE__{id: rid, created_at: rt} ->
+        cond do
+          lt < rt -> true
+          lt == rt and lid >= rid -> true
+          true -> false
+        end
+      end)
+
+    Enum.each(old, &Query.delete_record/1)
+
+    :ok
+  end
+
   @spec req([map()] | map()) :: [Table.record()] | {:error, any()}
   def req([]), do: {:error, "need one or more filters"}
 
