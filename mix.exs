@@ -7,7 +7,7 @@ defmodule Noxir.MixProject do
   def project do
     [
       app: :noxir,
-      version: @version,
+      version: version(),
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -31,6 +31,79 @@ defmodule Noxir.MixProject do
       extra_applications: [:logger, :memento],
       mod: {Noxir.Application, []}
     ]
+  end
+
+  defp is_not_found_git do
+    "git"
+    |> System.find_executable()
+    |> is_nil()
+  end
+
+  defp git_tag do
+    if is_not_found_git() do
+      nil
+    else
+      case System.cmd("git", ["-P", "tag", "--points-at", "HEAD"], stderr_to_stdout: true) do
+        {tag, 0} -> String.trim(tag)
+        _ -> nil
+      end
+    end
+  end
+
+  defp git_short_hash do
+    if is_not_found_git() do
+      nil
+    else
+      case System.cmd("git", ["rev-parse", "--short", "HEAD"], stderr_to_stdout: true) do
+        {hash, 0} -> String.trim(hash)
+        _ -> nil
+      end
+    end
+  end
+
+  defp prerelease do
+    "NOXIR_PRERELEASE"
+    |> System.get_env("dev")
+    |> String.trim()
+    |> then(fn
+      "dev" ->
+        case git_tag() do
+          "v" <> @version <> "-" <> tag_prerelease -> tag_prerelease
+          "v" <> @version <> _ -> ""
+          _ -> "dev"
+        end
+
+      v ->
+        v
+    end)
+  end
+
+  defp vcs_ref do
+    "NOXIR_VCS_REF"
+    |> System.get_env("")
+    |> String.trim()
+    |> then(fn
+      "" ->
+        case git_short_hash() do
+          git_ref when is_binary(git_ref) -> git_ref
+          nil -> nil
+        end
+
+      v ->
+        v
+    end)
+  end
+
+  defp version do
+    with "dev" <- prerelease(),
+         vcs_ref <- vcs_ref(),
+         false <- is_nil(vcs_ref) do
+      @version <> "-dev" <> "+" <> vcs_ref
+    else
+      true -> @version <> "-dev"
+      "" -> @version
+      v -> @version <> "-" <> v
+    end
   end
 
   # Run "mix help deps" to learn about dependencies.
@@ -66,7 +139,14 @@ defmodule Noxir.MixProject do
     [
       main: "readme",
       extras: ["README.md"],
-      source_ref: "v" <> @version,
+      source_ref: source_ref()
     ]
+  end
+
+  defp source_ref do
+    case version() do
+      @version <> "-dev" <> _ -> "master"
+      semver -> "v" <> semver
+    end
   end
 end
