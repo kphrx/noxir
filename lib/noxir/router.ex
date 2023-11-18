@@ -14,6 +14,8 @@ defmodule Noxir.Router do
   plug(Noxir.Plug.Connect)
   plug(Noxir.Plug.WebSocket, Noxir.Relay)
 
+  plug(Noxir.Plug.NIP11)
+
   plug(:match)
   plug(:dispatch)
 
