@@ -8,10 +8,12 @@ defmodule Noxir.Store do
   alias Memento.Table
   alias Noxir.Store.Connection
   alias Noxir.Store.Event
+  alias Event.TagIndex
 
   @tables [
     Connection,
-    Event
+    Event,
+    TagIndex
   ]
 
   @spec start_link([GenServer.option()]) :: GenServer.on_start()

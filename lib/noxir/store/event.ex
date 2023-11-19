@@ -9,6 +9,7 @@ defmodule Noxir.Store.Event do
   alias Memento.Table
   alias Noxir.Store
   alias Store.Filter
+  alias __MODULE__.TagIndex
 
   @type id :: binary()
   @type pubkey :: binary()
@@ -31,6 +32,7 @@ defmodule Noxir.Store.Event do
 
   @spec create(__MODULE__.t() | map()) :: Table.record() | no_return()
   def create(%__MODULE__{} = event) do
+    TagIndex.add_event(event)
     Query.write(event)
   end
 
@@ -38,6 +40,18 @@ defmodule Noxir.Store.Event do
     __MODULE__
     |> struct(Store.change_to_existing_atom_key(event_map))
     |> __MODULE__.create()
+  end
+
+  @spec delete(__MODULE__.t() | map()) :: Table.record() | no_return()
+  def delete(%__MODULE__{} = event) do
+    TagIndex.remove_event(event)
+    Query.delete_record(event)
+  end
+
+  def delete(event_map) do
+    __MODULE__
+    |> struct(Store.change_to_existing_atom_key(event_map))
+    |> __MODULE__.delete()
   end
 
   @spec delete_old({pubkey(), kind()} | {pubkey(), kind(), [binary()]}) :: :ok
@@ -73,9 +87,7 @@ defmodule Noxir.Store.Event do
         end
       end)
 
-    Enum.each(old, &Query.delete_record/1)
-
-    :ok
+    Enum.each(old, &delete/1)
   end
 
   @spec req([map()] | map()) :: [Table.record()] | {:error, any()}
