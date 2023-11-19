@@ -1,18 +1,18 @@
-defmodule Noxir.Store.FilterMatch do
+defmodule Noxir.Store.Filter.Tags do
   @moduledoc false
 
   alias Noxir.Store.Filter
 
-  defmacro __using__(_) do
+  defmacro __using__(params) do
     single_lowercase_letters = Enum.map(?a..?z, &to_string([&1]))
     single_uppercase_letters = Enum.map(?A..?Z, &to_string([&1]))
     single_letters = single_lowercase_letters ++ single_uppercase_letters
 
-    Enum.map([:pre, :match_ids?, :match_authors?, :match_kinds? | single_letters], fn
+    Enum.map([:pre | single_letters], fn
       :pre ->
         quote do
           @tag_filters unquote(Enum.map(single_letters, &:"##{&1}"))
-          @parameters [:ids, :authors, :kinds, :since, :until, :limit | @tag_filters]
+          @parameters [unquote_splicing(params) | @tag_filters]
 
           defstruct @parameters
 
@@ -24,14 +24,6 @@ defmodule Noxir.Store.FilterMatch do
             end)
 
           @type t :: unquote(:unquote)(Code.string_to_quoted!("%__MODULE__{#{attrs}}"))
-        end
-
-      value when value in [:match_ids?, :match_authors?, :match_kinds?] ->
-        quote do
-          defp unquote(value)([_ | _] = list, value),
-            do: Enum.any?(list, &(&1 == value))
-
-          defp unquote(value)(_, _), do: true
         end
 
       tag ->

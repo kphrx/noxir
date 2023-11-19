@@ -1,7 +1,7 @@
 defmodule Noxir.Store.Filter do
   @moduledoc false
 
-  use Noxir.Store.FilterMatch
+  use __MODULE__.Tags, [:ids, :authors, :kinds, :since, :until, :limit]
 
   alias Noxir.Store
   alias Store.Event
@@ -90,6 +90,21 @@ defmodule Noxir.Store.Filter do
          kind: kind
        }),
        do: match_ids?(ids, id) and match_authors?(authors, pkey) and match_kinds?(kinds, kind)
+
+  defp match_ids?([_ | _] = list, value),
+    do: Enum.any?(list, &(&1 == value))
+
+  defp match_ids?(_, _), do: true
+
+  defp match_authors?([_ | _] = list, value),
+    do: Enum.any?(list, &(&1 == value))
+
+  defp match_authors?(_, _), do: true
+
+  defp match_kinds?([_ | _] = list, value),
+    do: Enum.any?(list, &(&1 == value))
+
+  defp match_kinds?(_, _), do: true
 
   defp match_range?(%__MODULE__{since: since, until: until}, %Event{created_at: created_at}),
     do: match_since?(since, created_at) and match_until?(until, created_at)
