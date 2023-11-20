@@ -5,10 +5,10 @@ defmodule Noxir.Store do
 
   use GenServer
 
-  alias Memento.Table
-  alias Noxir.Store.Connection
-  alias Noxir.Store.Event
+  alias __MODULE__.Connection
+  alias __MODULE__.Event
   alias Event.TagIndex
+  alias Memento.Table
 
   @tables [
     Connection,

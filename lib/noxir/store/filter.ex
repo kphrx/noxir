@@ -72,15 +72,17 @@ defmodule Noxir.Store.Filter do
   @spec tag_queries(__MODULE__.t(), memento_query()) ::
           {:ok, memento_query()} | {:error, :not_found}
   def tag_queries(%__MODULE__{} = filter, query \\ []) do
-    case Enum.reduce_while(@tag_filters, query, fn tag, acc ->
-           case tagged_events(tag, filter) do
-             {:ok, ids} -> {:cont, id_query(acc, ids)}
-             {:skip, _} -> {:cont, acc}
-             {:error, :not_found} -> {:halt, :not_found}
-           end
-         end) do
+    case Enum.reduce_while(@tag_filters, query, &tag_filter_to_query(&1, filter, &2)) do
       :not_found -> {:error, :not_found}
       ids -> {:ok, ids}
+    end
+  end
+
+  defp tag_filter_to_query(tag, filter, res) do
+    case tagged_events(tag, filter) do
+      {:ok, ids} -> {:cont, id_query(res, ids)}
+      {:skip, _} -> {:cont, res}
+      {:error, :not_found} -> {:halt, :not_found}
     end
   end
 
