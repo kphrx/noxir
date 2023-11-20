@@ -9,6 +9,7 @@ defmodule Noxir.Store.Event do
   alias Memento.Table
   alias Noxir.Store
   alias Store.Filter
+  alias __MODULE__.TagIndex
 
   @type id :: binary()
   @type pubkey :: binary()
@@ -31,6 +32,7 @@ defmodule Noxir.Store.Event do
 
   @spec create(__MODULE__.t() | map()) :: Table.record() | no_return()
   def create(%__MODULE__{} = event) do
+    TagIndex.add_event(event)
     Query.write(event)
   end
 
@@ -40,8 +42,20 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.create()
   end
 
-  @spec delete_old({pubkey(), kind()} | {pubkey(), kind(), [binary()]}) :: :ok
-  def delete_old({pkey, kind}) do
+  @spec delete(__MODULE__.t() | map()) :: Table.record() | no_return()
+  def delete(%__MODULE__{} = event) do
+    TagIndex.remove_event(event)
+    Query.delete_record(event)
+  end
+
+  def delete(event_map) do
+    __MODULE__
+    |> struct(Store.change_to_existing_atom_key(event_map))
+    |> __MODULE__.delete()
+  end
+
+  @spec delete_old(pubkey(), kind()) :: :ok
+  def delete_old(pkey, kind) do
     __MODULE__
     |> Query.select([
       {:==, :pubkey, pkey},
@@ -50,15 +64,19 @@ defmodule Noxir.Store.Event do
     |> delete_old_record()
   end
 
-  def delete_old({pkey, kind, params}) do
-    filter = Filter.from_map(%{"#d" => params})
+  @spec delete_old(pubkey(), kind(), [binary()]) :: :ok
+  def delete_old(pkey, kind, params) do
+    query =
+      Filter.tag_queries(
+        struct(Filter, %{"#d": params}),
+        [
+          {:==, :pubkey, pkey},
+          {:===, :kind, kind}
+        ]
+      )
 
     __MODULE__
-    |> Query.select([
-      {:==, :pubkey, pkey},
-      {:===, :kind, kind}
-    ])
-    |> Enum.filter(&Filter.match_tags?(filter, &1))
+    |> Query.select(query)
     |> delete_old_record()
   end
 
@@ -73,9 +91,7 @@ defmodule Noxir.Store.Event do
         end
       end)
 
-    Enum.each(old, &Query.delete_record/1)
-
-    :ok
+    Enum.each(old, &delete/1)
   end
 
   @spec req([map()] | map()) :: [Table.record()] | {:error, any()}
@@ -90,10 +106,13 @@ defmodule Noxir.Store.Event do
 
   def req(filter) do
     filter = Filter.from_map(filter)
-    {query, opts} = Filter.to_mnesia_query(filter)
 
-    __MODULE__
-    |> Query.select(query, opts)
-    |> Enum.filter(&Filter.match_tags?(filter, &1))
+    with {:ok, tag_queries} <- Filter.tag_queries(filter),
+         {query, opts} = Filter.to_mnesia_query(filter, tag_queries) do
+      __MODULE__
+      |> Query.select(query, opts)
+    else
+      {:error, :not_found} -> []
+    end
   end
 end

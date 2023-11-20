@@ -8,10 +8,12 @@ defmodule Noxir.Store do
   alias Memento.Table
   alias Noxir.Store.Connection
   alias Noxir.Store.Event
+  alias Event.TagIndex
 
   @tables [
     Connection,
-    Event
+    Event,
+    TagIndex
   ]
 
   @spec start_link([GenServer.option()]) :: GenServer.on_start()
@@ -95,7 +97,7 @@ defmodule Noxir.Store do
 
   def handle_cast({:replace_event, %Event{pubkey: pkey, kind: kind}, :replaceable}, state) do
     Memento.transaction!(fn ->
-      Event.delete_old({pkey, kind})
+      Event.delete_old(pkey, kind)
     end)
 
     {:noreply, state}
@@ -114,7 +116,7 @@ defmodule Noxir.Store do
       |> Enum.map(fn [_, tag | _] -> tag end)
 
     Memento.transaction!(fn ->
-      Event.delete_old({pkey, kind, dtags})
+      Event.delete_old(pkey, kind, dtags)
     end)
 
     {:noreply, state}
