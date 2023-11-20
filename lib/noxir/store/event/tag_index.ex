@@ -64,7 +64,9 @@ defmodule Noxir.Store.Event.TagIndex do
   end
 
   @spec get_ids(tag_kind(), [value()] | value()) :: [event_id()]
-  def get_ids(tag_kind, values) when is_list(values) do
+  def get_ids(tag_kind, [value | []]), do: get_ids(tag_kind, value)
+
+  def get_ids(tag_kind, [_ | _] = values) do
     __MODULE__
     |> Query.select([
       {:==, :tag_kind, tag_kind},
@@ -73,7 +75,7 @@ defmodule Noxir.Store.Event.TagIndex do
     |> Enum.map(fn %__MODULE__{event_id: event_id} -> event_id end)
   end
 
-  def get_ids(tag_kind, value) do
+  def get_ids(tag_kind, value) when is_binary(value) do
     __MODULE__
     |> Query.select([{:==, :tag_kind, tag_kind}, {:==, :value, value}])
     |> Enum.map(fn %__MODULE__{event_id: event_id} -> event_id end)
