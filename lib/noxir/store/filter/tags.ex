@@ -2,6 +2,7 @@ defmodule Noxir.Store.Filter.Tags do
   @moduledoc false
 
   alias Noxir.Store.Filter
+  alias Noxir.Store.Event.TagIndex
 
   defmacro __using__(params) do
     single_lowercase_letters = Enum.map(?a..?z, &to_string([&1]))
@@ -30,16 +31,28 @@ defmodule Noxir.Store.Filter.Tags do
         atom_tag = :"##{tag}"
 
         quote do
-          defp match_tags?(unquote(atom_tag), %Filter{unquote(atom_tag) => filter}, _)
-               when is_nil(filter),
-               do: true
+          defp tagged_events(unquote(atom_tag), %Filter{unquote(atom_tag) => nil}),
+            do: {:skip, nil}
 
-          defp match_tags?(unquote(atom_tag), %Filter{unquote(atom_tag) => filter}, tags) do
-            Enum.any?(tags, fn
-              [unquote(tag), value | _] -> Enum.any?(filter, &(&1 == value))
-              _ -> false
-            end)
+          defp tagged_events(unquote(atom_tag), %Filter{unquote(atom_tag) => []}),
+            do: {:skip, nil}
+
+          defp tagged_events(unquote(atom_tag), %Filter{unquote(atom_tag) => filter}) do
+            case TagIndex.get_ids(unquote(tag), filter) do
+              [] -> {:error, :not_found}
+              ids -> {:ok, ids}
+            end
           end
+
+          defp match_tags?(unquote(atom_tag), %Filter{unquote(atom_tag) => nil}, _), do: true
+          defp match_tags?(unquote(atom_tag), %Filter{unquote(atom_tag) => []}, _), do: true
+
+          defp match_tags?(unquote(atom_tag), %Filter{unquote(atom_tag) => filter}, tags),
+            do:
+              Enum.any?(tags, fn
+                [unquote(tag), value | _] -> Enum.any?(filter, &(&1 == value))
+                _ -> false
+              end)
         end
     end)
   end

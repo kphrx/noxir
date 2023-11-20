@@ -13,24 +13,27 @@ defmodule Noxir.Store.Filter do
   @spec from_map(map()) :: __MODULE__.t()
   def from_map(filter), do: struct(__MODULE__, Store.change_to_existing_atom_key(filter))
 
-  @spec to_mnesia_query(__MODULE__.t()) :: [query()] | query()
-  def to_mnesia_query(%__MODULE__{
-        ids: ids,
-        authors: authors,
-        kinds: kinds,
-        since: since,
-        until: until,
-        limit: limit
-      }) do
-    query =
-      []
+  @spec to_mnesia_query(__MODULE__.t(), memento_query()) :: query()
+  def to_mnesia_query(
+        %__MODULE__{
+          ids: ids,
+          authors: authors,
+          kinds: kinds,
+          since: since,
+          until: until,
+          limit: limit
+        },
+        query \\ []
+      ) do
+    res =
+      query
       |> id_query(ids)
       |> pubkey_query(authors)
       |> kind_query(kinds)
       |> since_query(since)
       |> until_query(until)
 
-    {query,
+    {res,
      limit:
        if limit > 0 do
          limit
@@ -65,6 +68,21 @@ defmodule Noxir.Store.Filter do
 
   defp until_query(res, nil), do: res
   defp until_query(res, until), do: [{:<=, :created_at, until} | res]
+
+  @spec tag_queries(__MODULE__.t(), memento_query()) ::
+          {:ok, memento_query()} | {:error, :not_found}
+  def tag_queries(%__MODULE__{} = filter, query \\ []) do
+    case Enum.reduce_while(@tag_filters, query, fn tag, acc ->
+           case tagged_events(tag, filter) do
+             {:ok, ids} -> {:cont, id_query(acc, ids)}
+             {:skip, _} -> {:cont, acc}
+             {:error, :not_found} -> {:halt, :not_found}
+           end
+         end) do
+      :not_found -> {:error, :not_found}
+      ids -> {:ok, ids}
+    end
+  end
 
   @spec match?([__MODULE__.t() | map()] | __MODULE__.t() | map(), Event.t()) :: boolean()
   def match?([], _), do: true
@@ -115,8 +133,7 @@ defmodule Noxir.Store.Filter do
   defp match_until?(nil, _), do: true
   defp match_until?(until, created_at), do: created_at <= until
 
-  @spec match_tags?(__MODULE__.t(), Event.t()) :: boolean()
-  def match_tags?(%__MODULE__{} = filter, %Event{tags: tags}) do
+  defp match_tags?(%__MODULE__{} = filter, %Event{tags: tags}) do
     Enum.all?(@tag_filters, &match_tags?(&1, filter, tags))
   end
 end

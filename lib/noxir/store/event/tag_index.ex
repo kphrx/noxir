@@ -62,4 +62,20 @@ defmodule Noxir.Store.Event.TagIndex do
     |> Query.select([{:==, :tag_kind, tag_kind}, {:==, :value, value}, {:==, :event_id, event_id}])
     |> Enum.each(&Query.delete_record/1)
   end
+
+  @spec get_ids(tag_kind(), [value()] | value()) :: [event_id()]
+  def get_ids(tag_kind, values) when is_list(values) do
+    __MODULE__
+    |> Query.select([
+      {:==, :tag_kind, tag_kind},
+      List.to_tuple([:or | Enum.map(values, &{:==, :value, &1})])
+    ])
+    |> Enum.map(fn %__MODULE__{event_id: event_id} -> event_id end)
+  end
+
+  def get_ids(tag_kind, value) do
+    __MODULE__
+    |> Query.select([{:==, :tag_kind, tag_kind}, {:==, :value, value}])
+    |> Enum.map(fn %__MODULE__{event_id: event_id} -> event_id end)
+  end
 end

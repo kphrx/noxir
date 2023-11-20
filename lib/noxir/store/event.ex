@@ -54,8 +54,8 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.delete()
   end
 
-  @spec delete_old({pubkey(), kind()} | {pubkey(), kind(), [binary()]}) :: :ok
-  def delete_old({pkey, kind}) do
+  @spec delete_old(pubkey(), kind()) :: :ok
+  def delete_old(pkey, kind) do
     __MODULE__
     |> Query.select([
       {:==, :pubkey, pkey},
@@ -64,15 +64,19 @@ defmodule Noxir.Store.Event do
     |> delete_old_record()
   end
 
-  def delete_old({pkey, kind, params}) do
-    filter = Filter.from_map(%{"#d" => params})
+  @spec delete_old(pubkey(), kind(), [binary()]) :: :ok
+  def delete_old(pkey, kind, params) do
+    query =
+      Filter.tag_queries(
+        struct(Filter, %{"#d": params}),
+        [
+          {:==, :pubkey, pkey},
+          {:===, :kind, kind}
+        ]
+      )
 
     __MODULE__
-    |> Query.select([
-      {:==, :pubkey, pkey},
-      {:===, :kind, kind}
-    ])
-    |> Enum.filter(&Filter.match_tags?(filter, &1))
+    |> Query.select(query)
     |> delete_old_record()
   end
 
@@ -102,10 +106,13 @@ defmodule Noxir.Store.Event do
 
   def req(filter) do
     filter = Filter.from_map(filter)
-    {query, opts} = Filter.to_mnesia_query(filter)
 
-    __MODULE__
-    |> Query.select(query, opts)
-    |> Enum.filter(&Filter.match_tags?(filter, &1))
+    with {:ok, tag_queries} <- Filter.tag_queries(filter),
+         {query, opts} = Filter.to_mnesia_query(filter, tag_queries) do
+      __MODULE__
+      |> Query.select(query, opts)
+    else
+      {:error, :not_found} -> []
+    end
   end
 end
