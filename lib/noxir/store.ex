@@ -23,7 +23,7 @@ defmodule Noxir.Store do
 
   @impl GenServer
   def init(options) do
-    :net_kernel.monitor_nodes(true)
+    :ok = :net_kernel.monitor_nodes(true)
 
     for table <- @tables do
       Table.create!(table)
@@ -40,7 +40,7 @@ defmodule Noxir.Store do
   end
 
   def handle_info({:nodedown, _}, state) do
-    Memento.add_nodes(Node.list())
+    {:ok, _} = Memento.add_nodes(Node.list())
     {:noreply, state}
   end
 

@@ -32,7 +32,7 @@ defmodule Noxir.Store.Event do
 
   @spec create(__MODULE__.t() | map()) :: Table.record() | no_return()
   def create(%__MODULE__{} = event) do
-    TagIndex.add_event(event)
+    _ = TagIndex.add_event(event)
     Query.write(event)
   end
 
@@ -42,7 +42,7 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.create()
   end
 
-  @spec delete(__MODULE__.t() | map()) :: Table.record() | no_return()
+  @spec delete(__MODULE__.t() | map()) :: :ok
   def delete(%__MODULE__{} = event) do
     TagIndex.remove_event(event)
     Query.delete_record(event)
@@ -54,8 +54,10 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.delete()
   end
 
-  @spec delete_old(pubkey(), kind()) :: :ok
-  def delete_old(pkey, kind) do
+  @spec delete_old(pubkey(), kind(), [binary()]) :: :ok
+  def delete_old(pkey, kind, params \\ [])
+
+  def delete_old(pkey, kind, []) do
     __MODULE__
     |> Query.select([
       {:==, :pubkey, pkey},

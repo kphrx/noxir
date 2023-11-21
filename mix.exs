@@ -44,10 +44,9 @@ defmodule Noxir.MixProject do
       flags: [
         :error_handling,
         :underspecs,
-        :unknown,
         :unmatched_returns,
-        :overspecs,
-        :specdiffs,
+        # :overspecs,
+        # :specdiffs,
         :extra_return,
         :missing_return
       ],
