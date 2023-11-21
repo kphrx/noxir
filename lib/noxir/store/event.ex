@@ -5,11 +5,11 @@ defmodule Noxir.Store.Event do
     attributes: [:id, :pubkey, :created_at, :kind, :tags, :content, :sig],
     index: [:pubkey, :kind, :created_at]
 
+  alias __MODULE__.TagIndex
   alias Memento.Query
   alias Memento.Table
   alias Noxir.Store
   alias Store.Filter
-  alias __MODULE__.TagIndex
 
   @type id :: binary()
   @type pubkey :: binary()
@@ -32,7 +32,7 @@ defmodule Noxir.Store.Event do
 
   @spec create(__MODULE__.t() | map()) :: Table.record() | no_return()
   def create(%__MODULE__{} = event) do
-    TagIndex.add_event(event)
+    _ = TagIndex.add_event(event)
     Query.write(event)
   end
 
@@ -42,7 +42,7 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.create()
   end
 
-  @spec delete(__MODULE__.t() | map()) :: Table.record() | no_return()
+  @spec delete(__MODULE__.t() | map()) :: :ok
   def delete(%__MODULE__{} = event) do
     TagIndex.remove_event(event)
     Query.delete_record(event)
@@ -54,8 +54,10 @@ defmodule Noxir.Store.Event do
     |> __MODULE__.delete()
   end
 
-  @spec delete_old(pubkey(), kind()) :: :ok
-  def delete_old(pkey, kind) do
+  @spec delete_old(pubkey(), kind(), [binary()]) :: :ok
+  def delete_old(pkey, kind, params \\ [])
+
+  def delete_old(pkey, kind, []) do
     __MODULE__
     |> Query.select([
       {:==, :pubkey, pkey},
@@ -67,13 +69,12 @@ defmodule Noxir.Store.Event do
   @spec delete_old(pubkey(), kind(), [binary()]) :: :ok
   def delete_old(pkey, kind, params) do
     query =
-      Filter.tag_queries(
-        struct(Filter, %{"#d": params}),
-        [
-          {:==, :pubkey, pkey},
-          {:===, :kind, kind}
-        ]
-      )
+      Filter
+      |> struct(%{"#d": params})
+      |> Filter.tag_queries([
+        {:==, :pubkey, pkey},
+        {:===, :kind, kind}
+      ])
 
     __MODULE__
     |> Query.select(query)
@@ -107,12 +108,13 @@ defmodule Noxir.Store.Event do
   def req(filter) do
     filter = Filter.from_map(filter)
 
-    with {:ok, tag_queries} <- Filter.tag_queries(filter),
-         {query, opts} = Filter.to_mnesia_query(filter, tag_queries) do
-      __MODULE__
-      |> Query.select(query, opts)
-    else
-      {:error, :not_found} -> []
+    case Filter.tag_queries(filter) do
+      {:ok, tag_queries} ->
+        {query, opts} = Filter.to_mnesia_query(filter, tag_queries)
+        Query.select(__MODULE__, query, opts)
+
+      {:error, :not_found} ->
+        []
     end
   end
 end

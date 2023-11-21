@@ -24,3 +24,7 @@ noxir-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Ignore dialyzer PLTs.
+/priv/plts/*.plt
+/priv/plts/*.plt.hash

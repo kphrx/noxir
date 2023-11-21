@@ -1,8 +1,8 @@
 defmodule Noxir.Store.Filter.Tags do
   @moduledoc false
 
-  alias Noxir.Store.Filter
   alias Noxir.Store.Event.TagIndex
+  alias Noxir.Store.Filter
 
   defmacro __using__(params) do
     single_lowercase_letters = Enum.map(?a..?z, &to_string([&1]))
