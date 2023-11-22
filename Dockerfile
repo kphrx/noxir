@@ -5,7 +5,7 @@ ENV MIX_ENV=${MIX_ENV}
 
 WORKDIR /build
 
-COPY mix.exs mix.lock .
+COPY mix.exs mix.lock ./
 RUN mix deps.get
 
 COPY . /build
@@ -13,9 +13,9 @@ RUN mix release
 
 FROM debian:bookworm-20231009-slim
 
-RUN apt-get update -y && apt-get install -y openssl \
+RUN apt-get update -y && apt-get install --no-install-recommends -y openssl \
     && apt-get clean \
-    && rm -f /var/lib/apt/lists/*_*
+    && rm -rf /var/lib/apt/lists/*
 
 ARG MIX_ENV=prod
 ENV MIX_ENV=${MIX_ENV}
