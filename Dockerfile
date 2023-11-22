@@ -11,7 +11,7 @@ RUN mix deps.get
 COPY . /build
 RUN mix release
 
-FROM debian:bookworm-20231009-slim
+FROM debian:bookworm-20231120-slim
 
 RUN apt-get update -y && apt-get install -y openssl \
     && apt-get clean \
