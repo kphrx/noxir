@@ -13,7 +13,7 @@ RUN mix release
 
 FROM debian:bookworm-20231009-slim
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y openssl \
+RUN apt-get update -y && apt-get install --no-install-recommends -y openssl='3.*' \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
