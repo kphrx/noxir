@@ -122,7 +122,7 @@ jobs:
         key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
 
     - name: Restore PLT cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       id: plt_cache
       with:
         path: priv/plts
