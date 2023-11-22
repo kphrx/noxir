@@ -17,7 +17,6 @@ env:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   deps:
