@@ -1,4 +1,8 @@
-FROM hexpm/elixir:1.15.7-erlang-26.1.2-debian-bookworm-20231009-slim AS build
+ARG ELIXIR_VERSION=1.15.7
+ARG OTP_VERSION=26.1.2
+ARG DEBIAN_VERSION=bookworm-20231009-slim
+
+FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION} as build
 
 ARG MIX_ENV=prod
 ENV MIX_ENV=${MIX_ENV}
@@ -11,7 +15,7 @@ RUN mix deps.get
 COPY . /build
 RUN mix release
 
-FROM debian:bookworm-20231009-slim
+FROM debian:${DEBIAN_VERSION}
 
 RUN apt-get update -y && apt-get install --no-install-recommends -y openssl='3.*' \
     && apt-get clean \
