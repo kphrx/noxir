@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.15.7-erlang-26.1.2-debian-bookworm-20231009-slim AS build
+FROM hexpm/elixir:1.15.7-erlang-26.2-debian-buster-20231009-slim AS build
 
 ARG MIX_ENV=prod
 ENV MIX_ENV=${MIX_ENV}
