@@ -21,15 +21,14 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   reviewdog-hadolint:
 
     name: Lint Dockerfile
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
     - uses: actions/checkout@v3
