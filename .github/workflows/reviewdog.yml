@@ -69,7 +69,7 @@ jobs:
         fail_on_error: true
 
 
-  deps:
+  mix-deps:
 
     name: Install dependencies
     runs-on: ubuntu-latest
