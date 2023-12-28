@@ -55,8 +55,6 @@ defmodule Noxir.Relay do
   end
 
   def handle_info({:create_event, %Event{} = event}, state) do
-    event_map = Store.to_map(event)
-
     msgs =
       fn ->
         Connection.get_subscriptions(self())
@@ -67,9 +65,9 @@ defmodule Noxir.Relay do
       end)
       |> Enum.map(fn {sub_id, _} ->
         msg =
-          event_map
+          event
+          |> Store.to_map()
           |> resp_nostr_event_msg(sub_id)
-          |> Jason.encode!()
 
         {:text, msg}
       end)
