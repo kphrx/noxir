@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "master" ]
 
+env:
+  ELIXIR_VERSION: '1.16.0'
+  OTP_VERSION: '26.0.2'
+
 permissions:
   contents: read
   pull-requests: write
@@ -81,6 +85,7 @@ jobs:
       with:
         elixir-version: ${{ env.ELIXIR_VERSION }}
         otp-version: ${{ env.OTP_VERSION }}
+        version-type: strict
 
     - name: Restore dependencies cache
       uses: actions/cache@v3
@@ -116,6 +121,7 @@ jobs:
       with:
         elixir-version: ${{ env.ELIXIR_VERSION }}
         otp-version: ${{ env.OTP_VERSION }}
+        version-type: strict
 
     - run: mix format
     - name: Reviewdog suggester / mix-format
@@ -139,6 +145,7 @@ jobs:
       with:
         elixir-version: ${{ env.ELIXIR_VERSION }}
         otp-version: ${{ env.OTP_VERSION }}
+        version-type: strict
     - name: Restore dependencies cache
       uses: actions/cache@v3
       with:
@@ -177,6 +184,7 @@ jobs:
       with:
         elixir-version: ${{ env.ELIXIR_VERSION }}
         otp-version: ${{ env.OTP_VERSION }}
+        version-type: strict
     - name: Restore dependencies cache
       uses: actions/cache@v3
       with:
