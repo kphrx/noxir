@@ -1,0 +1,109 @@
+name: Deploy docs to Pages
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  ELIXIR_VERSION: '1.16.0'
+  OTP_VERSION: '26.0.2'
+
+jobs:
+  deps:
+
+    name: Install dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: ${{ env.ELIXIR_VERSION }}
+        otp-version: ${{ env.OTP_VERSION }}
+        version-type: strict
+
+    - name: Restore dependencies cache
+      uses: actions/cache@v3
+      id: deps-cache
+      with:
+        path: deps
+        key: ${{ runner.os }}-elixir-docs-deps-${{ hashFiles('**/mix.lock') }}
+        restore-keys: ${{ runner.os }}-elixir-docs-deps-
+    - run: mix deps.get --only docs
+      if: steps.deps-cache.outputs.cache-hit != 'true'
+
+    - name: Restore build cache
+      uses: actions/cache@v3
+      id: build-cache
+      with:
+        path: _build
+        key: ${{ runner.os }}-elixir-docs-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
+        restore-keys: |
+          ${{ runner.os }}-elixir-docs-build-${{ hashFiles('**/mix.lock') }}-
+          ${{ runner.os }}-elixir-docs-build-
+    - run: mix deps.compile
+      if: steps.build-cache.outputs.cache-hit != 'true'
+      env:
+        MIX_ENV: docs
+
+
+  ex-doc:
+
+    runs-on: ubuntu-latest
+    needs: deps
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: ${{ env.ELIXIR_VERSION }}
+        otp-version: ${{ env.OTP_VERSION }}
+        version-type: strict
+    - name: Restore dependencies cache
+      uses: actions/cache@v3
+      with:
+        path: deps
+        key: ${{ runner.os }}-elixir-docs-deps-${{ hashFiles('**/mix.lock') }}
+    - name: Restore build cache
+      uses: actions/cache@v3
+      with:
+        path: _build
+        key: ${{ runner.os }}-elixir-docs-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
+
+    - run: mix docs
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: doc/
+
+
+  deploy:
+
+    if: github.event_name != 'pull_request'
+    needs: ex-doc
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
