@@ -12,6 +12,9 @@ WORKDIR /build
 COPY mix.exs mix.lock ./
 RUN mix deps.get
 
+ARG ERL_FLAGS=""
+ENV ERL_FLAGS=${ERL_FLAGS}
+
 COPY . /build
 RUN mix release
 
