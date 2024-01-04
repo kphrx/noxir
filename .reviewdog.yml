@@ -8,5 +8,6 @@ runner:
   dialyzer: # Type Checking
     cmd: mix dialyzer --format=short
     errorformat:
+      - "%f:%l:%c:%m"
       - "%f:%l:%m"
     level: warning
