@@ -43,6 +43,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Install the cosign tool except on PR
+      # https://github.com/sigstore/cosign-installer
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.1.1'
+
       - name: Setup erl flags for QEMU
         if: matrix.platform != 'amd64'
         run: |
@@ -95,6 +102,19 @@ jobs:
           outputs: type=image,oci-mediatypes=true,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Sign the resulting Docker image digest except on PRs.
+      # This will only write to the public Rekor transparency log when the Docker
+      # repository is public to avoid leaking data.  If you would like to publish
+      # transparency data even for private images, pass --force to cosign below.
+      # https://github.com/sigstore/cosign
+      - name: Sign the published Docker image
+        env:
+          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
 
       - run: echo "${{ steps.build-and-push.outputs.digest }}" > digest-${{ matrix.platform }}.txt
       - uses: actions/upload-artifact@v4
