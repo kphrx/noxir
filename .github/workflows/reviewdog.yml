@@ -98,10 +98,10 @@ jobs:
       uses: actions/cache@v3
       with:
         path: _build
-        key: ${{ runner.os }}-elixir-lint-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
+        key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-lint-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
         restore-keys: |
-          ${{ runner.os }}-elixir-lint-build-${{ hashFiles('**/mix.lock') }}-
-          ${{ runner.os }}-elixir-lint-build-
+          ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-lint-build-${{ hashFiles('**/mix.lock') }}-
+          ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-lint-build-
     - run: mix deps.compile
       env:
         MIX_ENV: test
@@ -155,7 +155,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: _build
-        key: ${{ runner.os }}-elixir-lint-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
+        key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-lint-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
 
     - uses: reviewdog/action-setup@v1
       with:
@@ -194,14 +194,15 @@ jobs:
       uses: actions/cache@v3
       with:
         path: _build
-        key: ${{ runner.os }}-elixir-lint-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
+        key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-lint-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
 
     - name: Restore PLT cache
       uses: actions/cache@v3
       id: plt_cache
       with:
         path: priv/plts
-        key: ${{ runner.os }}-dialyzer-plt-${{ hashFiles('**/mix.lock') }}
+        key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-dialyzer-plt-${{ hashFiles('**/mix.lock') }}
+        restore-keys: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-dialyzer-plt-
     - name: Create PLTs
       if: steps.plt_cache.outputs.cache-hit != 'true'
       run: mix dialyzer --plt
