@@ -11,7 +11,7 @@ on:
 
 env:
   ELIXIR_VERSION: '1.16.0'
-  OTP_VERSION: '26.0.2'
+  OTP_VERSION: '26.2.1'
 
 jobs:
   deps:
@@ -43,10 +43,10 @@ jobs:
       id: build-cache
       with:
         path: _build
-        key: ${{ runner.os }}-elixir-docs-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
+        key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-docs-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
         restore-keys: |
-          ${{ runner.os }}-elixir-docs-build-${{ hashFiles('**/mix.lock') }}-
-          ${{ runner.os }}-elixir-docs-build-
+          ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-docs-build-${{ hashFiles('**/mix.lock') }}-
+          ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-docs-build-
     - run: mix deps.compile
       if: steps.build-cache.outputs.cache-hit != 'true'
       env:
@@ -75,7 +75,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: _build
-        key: ${{ runner.os }}-elixir-docs-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
+        key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-docs-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
 
     - run: mix docs
 

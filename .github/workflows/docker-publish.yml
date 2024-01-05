@@ -25,6 +25,10 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+      ELIXIR_VERSION: '1.15.7'
+      OTP_VERSION: '26.2.1'
+      DEBIAN_VERSION: 'bookworm-20231009-slim'
     permissions:
       contents: read
       packages: write
@@ -97,6 +101,9 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           build-args: |
             ERL_FLAGS=${{ env.ERL_FLAGS }}
+            ELIXIR_VERSION=${{ env.ELIXIR_VERSION }}
+            OTP_VERSION=${{ env.OTP_VERSION }}
+            DEBIAN_VERSION=${{ env.DEBIAN_VERSION }}
           annotations: ${{ steps.meta.outputs.annotations }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,oci-mediatypes=true,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
