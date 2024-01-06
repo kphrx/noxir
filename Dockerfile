@@ -24,6 +24,8 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y openssl='3.*
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+ENV LANG C.utf8
+
 ARG MIX_ENV=prod
 ENV MIX_ENV=${MIX_ENV}
 
