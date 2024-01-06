@@ -28,3 +28,4 @@ noxir-*.tar
 # Ignore dialyzer PLTs.
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
+compose.*.yml

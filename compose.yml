@@ -1,0 +1,13 @@
+version: '3'
+
+x-environment: &environment
+  RELAY_NAME: Noxir
+  RELAY_DESC: The Nostr relay implemented in Elixir.
+
+services:
+
+  app:
+    image: ghcr.io/kphrx/noxir:edge
+    restart: always
+    environment:
+      <<: *environment
