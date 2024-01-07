@@ -27,7 +27,7 @@ Nostr Relay in Elixir with Mnesia.
 
 ### Docker Compose
 
-1. Overwrite environment and docker image tag, and scale config to `docker.override.yml`.
+1. Overwrite environment and docker image tag, and scale config to `compose.override.yml`.
    ```yml
    version: '3'
 
