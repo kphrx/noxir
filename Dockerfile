@@ -10,12 +10,14 @@ ENV MIX_ENV=${MIX_ENV}
 WORKDIR /build
 
 COPY mix.exs mix.lock ./
-RUN mix deps.get
+RUN mix deps.get --only $MIX_ENV
 
 ARG ERL_FLAGS=""
 ENV ERL_FLAGS=${ERL_FLAGS}
 
-COPY . /build
+RUN mix deps.compile
+
+COPY . ./
 RUN mix release
 
 FROM debian:${DEBIAN_VERSION}
