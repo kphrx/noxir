@@ -114,6 +114,7 @@ defmodule Noxir.MixProject do
       {:memento, "~> 0.3"},
       {:websock_adapter, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:erlex, github: "bradhanks/erlex", only: [:dev, :test], runtime: false, override: true},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.27", only: :docs, runtime: false}
     ]
