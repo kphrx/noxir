@@ -9,6 +9,7 @@ defmodule Noxir.Router do
 
   plug(Plug.RewriteOn, [:x_forwarded_host, :x_forwarded_port, :x_forwarded_proto])
   plug(Plug.Logger)
+  plug(CORSPlug)
 
   plug(Plug.Head)
   plug(Noxir.Plug.Connect)
@@ -19,13 +20,17 @@ defmodule Noxir.Router do
   plug(:dispatch)
 
   get "/" do
-    send_resp_with_nip11(conn, 200, """
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp_with_nip11(200, """
     Please use a Nostr client to connect.
     """)
   end
 
   match _ do
-    send_resp_with_nip11(conn, 404, "not found")
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp_with_nip11(404, "not found")
   end
 
   defp send_resp_with_nip11(conn, status, body) do
