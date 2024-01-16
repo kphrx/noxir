@@ -110,6 +110,7 @@ defmodule Noxir.MixProject do
   defp deps do
     [
       {:bandit, "~> 1.0"},
+      {:cors_plug, "~> 3.0"},
       {:jason, "~> 1.4"},
       {:memento, "~> 0.3"},
       {:websock_adapter, "~> 0.5"},
