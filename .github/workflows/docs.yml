@@ -29,7 +29,7 @@ jobs:
         version-type: strict
 
     - name: Restore dependencies cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: deps-cache
       with:
         path: deps
@@ -39,7 +39,7 @@ jobs:
       if: steps.deps-cache.outputs.cache-hit != 'true'
 
     - name: Restore build cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: build-cache
       with:
         path: _build
@@ -67,12 +67,12 @@ jobs:
         otp-version: ${{ env.OTP_VERSION }}
         version-type: strict
     - name: Restore dependencies cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: deps
         key: ${{ runner.os }}-elixir-docs-deps-${{ hashFiles('**/mix.lock') }}
     - name: Restore build cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: _build
         key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-docs-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}

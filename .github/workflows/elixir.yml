@@ -34,14 +34,14 @@ jobs:
         otp-version: ${{ env.OTP_VERSION }}
         version-type: strict
     - name: Restore dependencies cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: deps
         key: ${{ runner.os }}-elixir-deps-${{ hashFiles('**/mix.lock') }}
         restore-keys: ${{ runner.os }}-elixir-deps-
     - run: mix deps.get
     - name: Restore build cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: _build
         key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
@@ -69,12 +69,12 @@ jobs:
         otp-version: ${{ env.OTP_VERSION }}
         version-type: strict
     - name: Restore dependencies cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: deps
         key: ${{ runner.os }}-elixir-deps-${{ hashFiles('**/mix.lock') }}
     - name: Restore build cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: _build
         key: ${{ runner.os }}-elixir-${{ env.ELIXIR_VERSION }}-erlang-${{ env.OTP_VERSION }}-build-${{ hashFiles('**/mix.lock') }}-${{ hashFiles( '**/lib/**/*.{ex,eex}', '**/config/*.exs', '**/mix.exs' ) }}
