@@ -52,7 +52,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
         with:
-          cosign-release: 'v2.1.1'
+          cosign-release: 'v2.2.3'
 
       - name: Setup erl flags for QEMU
         if: matrix.platform != 'amd64'
@@ -164,7 +164,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
         with:
-          cosign-release: 'v2.1.1'
+          cosign-release: 'v2.2.3'
 
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
