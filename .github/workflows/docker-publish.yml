@@ -23,8 +23,6 @@ env:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
     env:
       ELIXIR_VERSION: '1.15.7'
       OTP_VERSION: '26.2.1'
@@ -39,9 +37,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - amd64
-          - arm64
+        include:
+          - os: ubuntu-latest
+            platform: amd64
+          - os: ubuntu-aarch64
+            platform: arm64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -54,16 +56,16 @@ jobs:
         with:
           cosign-release: 'v2.2.3'
 
-      - name: Setup erl flags for QEMU
-        if: matrix.platform != 'amd64'
-        run: |
-          echo "ERL_FLAGS=+JMsingle true" >> "$GITHUB_ENV"
+      #- name: Setup erl flags for QEMU
+      #  if: matrix.platform != 'amd64'
+      #  run: |
+      #    echo "ERL_FLAGS=+JMsingle true" >> "$GITHUB_ENV"
 
-      - name: Set up QEMU
-        if: matrix.platform != 'amd64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: ${{ matrix.platform }}
+      #- name: Set up QEMU
+      #  if: matrix.platform != 'amd64'
+      #  uses: docker/setup-qemu-action@v3
+      #  with:
+      #    platforms: ${{ matrix.platform }}
 
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache

@@ -50,6 +50,7 @@ jobs:
     - name: Run actionlint with reviewdog
       uses: reviewdog/action-actionlint@v1
       with:
+        actionlint_flags: -config-file .github/actionlint.yaml
         level: warning
         reporter: ${{ needs.opts.outputs.reporter }}
         filter_mode: ${{ needs.opts.outputs.filter-mode }}
