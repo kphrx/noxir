@@ -37,11 +37,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            platform: amd64
-          - os: ubuntu-aarch64
-            platform: arm64
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
 
     runs-on: ${{ matrix.os }}
 
@@ -56,16 +54,21 @@ jobs:
         with:
           cosign-release: 'v2.2.3'
 
-      #- name: Setup erl flags for QEMU
-      #  if: matrix.platform != 'amd64'
-      #  run: |
-      #    echo "ERL_FLAGS=+JMsingle true" >> "$GITHUB_ENV"
-
-      #- name: Set up QEMU
-      #  if: matrix.platform != 'amd64'
-      #  uses: docker/setup-qemu-action@v3
-      #  with:
-      #    platforms: ${{ matrix.platform }}
+      - name: Platform metadata
+        id: platform
+        run: |
+          case "${{ runner.arch }}" in
+            "X64")
+              echo "docker=linux/amd64" >> "$GITHUB_OUTPUT"
+              digest_name="digest-amd64"
+            ;;
+            "ARM64")
+              echo "docker=linux/arm64" >> "$GITHUB_OUTPUT"
+              digest_name="digest-arm64"
+            ;;
+          esac
+          echo "digest-name=${digest_name}" >> "$GITHUB_OUTPUT"
+          echo "digest-file=${digest_name}.txt" >> "$GITHUB_OUTPUT"
 
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
@@ -92,7 +95,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      # Build and push Docker image with Buildx (don't push on PR)
+      # Build and push Docker image with Buildx
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
@@ -100,7 +103,7 @@ jobs:
         with:
           context: .
           provenance: false
-          platforms: linux/${{ matrix.platform }}
+          platforms: ${{ steps.platform.outputs.docker }}
           build-args: |
             ERL_FLAGS=${{ env.ERL_FLAGS }}
             ELIXIR_VERSION=${{ env.ELIXIR_VERSION }}
@@ -125,11 +128,11 @@ jobs:
         # against the sigstore community Fulcio instance.
         run: cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
 
-      - run: echo "${{ steps.build-and-push.outputs.digest }}" > digest-${{ matrix.platform }}.txt
+      - run: echo "${{ steps.build-and-push.outputs.digest }}" > ${{ steps.platform.outputs.digest-file }}
       - uses: actions/upload-artifact@v4
         with:
-          name: digest-${{ matrix.platform }}
-          path: digest-${{ matrix.platform }}.txt
+          name: ${{ steps.platform.outputs.digest-name }}
+          path: ${{ steps.platform.outputs.digest-file }}
 
 
   merge:
